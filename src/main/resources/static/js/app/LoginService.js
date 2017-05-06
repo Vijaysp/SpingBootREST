@@ -1,12 +1,12 @@
 'use strict';
 
 angular.module('crudApp').factory('LoginService',
-    ['$localStorage', '$http', '$q', 'urls',
-        function ($localStorage, $http, $q, urls) {
+    ['$localStorage','$location', '$http', '$q', 'urls',
+        function ($localStorage,$location, $http, $q, urls) {
 
     	
             var factory = {
-                loginUser: loginUser,             
+            		getUserByName: getUserByName,             
             };
 
             return factory;
@@ -17,15 +17,20 @@ angular.module('crudApp').factory('LoginService',
                 $http.get(urls.LOGIN_SERVICE_API+name)
                     .then(
                         function (response) {
-                            console.log('successfully logged in'+name);                           
+                        	  $location.path('/audit');
+                            console.log('successfully logged in --> '+name+response.data);   
+                          
                         },
                         function (errResponse) {
+                        	
                             console.error('Error while loading users');
+                           
                             deferred.reject(errResponse);
                         }
                     );
                 return deferred.promise;
             }
+      
            
            
         }

@@ -91,6 +91,8 @@ angular.module('crudApp').controller('UserController',
         function getAllUsers(){
             return UserService.getAllUsers();
         }
+        
+        
 
         function editUser(id) {
             self.successMessage='';

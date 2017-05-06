@@ -15,7 +15,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.websystique.springboot.model.Audit;
 import com.websystique.springboot.model.User;
+import com.websystique.springboot.service.AuditService;
 import com.websystique.springboot.service.UserService;
 import com.websystique.springboot.util.CustomErrorType;
 
@@ -27,6 +29,9 @@ public class RestApiController {
 
 	@Autowired
 	UserService userService; //Service which will do all data retrieval/manipulation work
+	
+	@Autowired
+	AuditService auditService;
 
 	// -------------------Retrieve All Users---------------------------------------------
 
@@ -120,7 +125,7 @@ public class RestApiController {
 		return new ResponseEntity<User>(HttpStatus.NO_CONTENT);
 	}
 	
-	@RequestMapping(value = "/user/{name}", method = RequestMethod.GET)
+	@RequestMapping(value = "/user/nameexist/{name}", method = RequestMethod.GET)
 	public ResponseEntity<?> getUserByName(@PathVariable("name") String name) {
 		logger.info("Fetching User with id {}", name);
 		User user = userService.findByName(name);
@@ -132,4 +137,85 @@ public class RestApiController {
 		return new ResponseEntity<User>(user, HttpStatus.OK);
 	}
 
+	// -------------------Create a Audit-------------------------------------------
+
+		@RequestMapping(value = "/audit/", method = RequestMethod.POST)
+		public ResponseEntity<?> createAudit(@RequestBody Audit audit, UriComponentsBuilder ucBuilder) {
+			logger.info("Creating User : {}", audit);
+
+			if (auditService.isAuditExist(audit)) {
+				logger.error("Unable to create. A audit with name {} already exist", audit.getAuditName());
+				return new ResponseEntity(new CustomErrorType("Unable to create. An audit  with name " + 
+						audit.getAuditName() + " already exist."),HttpStatus.CONFLICT);
+			}
+			auditService.saveAudit(audit);
+
+			HttpHeaders headers = new HttpHeaders();
+			headers.setLocation(ucBuilder.path("/api/audit/{id}").buildAndExpand(audit.getId()).toUri());
+			return new ResponseEntity<String>(headers, HttpStatus.CREATED);
+		}
+		// -------------------Retrieve All Audits---------------------------------------------
+
+		@RequestMapping(value = "/audit/", method = RequestMethod.GET)
+		public ResponseEntity<List<Audit>> listAllAudits() {
+			List<Audit> audits = auditService.findAllAudits();
+			if (audits.isEmpty()) {
+				return new ResponseEntity(HttpStatus.NO_CONTENT);
+				// You many decide to return HttpStatus.NOT_FOUND
+			}
+			return new ResponseEntity<List<Audit>>(audits, HttpStatus.OK);
+		}
+
+		// -------------------Retrieve Single Audit------------------------------------------
+
+		@RequestMapping(value = "/audit/{id}", method = RequestMethod.GET)
+		public ResponseEntity<?> getAudit(@PathVariable("id") long id) {
+			logger.info("Fetching User with id {}", id);
+			Audit audit = auditService.findById(id);
+			if (audit == null) {
+				logger.error("User with id {} not found.", id);
+				return new ResponseEntity(new CustomErrorType("User with id " + id 
+						+ " not found"), HttpStatus.NOT_FOUND);
+			}
+			return new ResponseEntity<Audit>(audit, HttpStatus.OK);
+		}
+		// ------------------- Update a Audit ------------------------------------------------
+
+		@RequestMapping(value = "/audit/{id}", method = RequestMethod.PUT)
+		public ResponseEntity<?> updateAudit(@PathVariable("id") long id, @RequestBody Audit audit) {
+			logger.info("Updating Audit with id {}", id);
+
+			Audit currentAudit = auditService.findById(id);
+
+			if (currentAudit == null) {
+				logger.error("Unable to update. User with id {} not found.", id);
+				return new ResponseEntity(new CustomErrorType("Unable to upate. User with id " + id + " not found."),
+						HttpStatus.NOT_FOUND);
+			}
+
+			currentAudit.setAuditName(audit.getAuditName());
+			currentAudit.setCount(audit.getCount());
+			currentAudit.setAmount(audit.getAmount());
+
+			auditService.updateAudit(currentAudit);
+			return new ResponseEntity<Audit>(currentAudit, HttpStatus.OK);
+		}
+
+		// ------------------- Delete a User-----------------------------------------
+
+		@RequestMapping(value = "/audit/{id}", method = RequestMethod.DELETE)
+		public ResponseEntity<?> deleteAudit(@PathVariable("id") long id) {
+			logger.info("Fetching & Deleting User with id {}", id);
+
+			Audit audit = auditService.findById(id);
+			if (audit == null) {
+				logger.error("Unable to delete. audit with id {} not found.", id);
+				return new ResponseEntity(new CustomErrorType("Unable to delete. audit with id " + id + " not found."),
+						HttpStatus.NOT_FOUND);
+			}
+			auditService.deleteAuditById(id);
+			return new ResponseEntity<User>(HttpStatus.NO_CONTENT);
+		}
+	
+	
 }
